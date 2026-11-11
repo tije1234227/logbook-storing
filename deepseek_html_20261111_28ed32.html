@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logbook Storing</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 16px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #1e3a8a, #0ea5e9);
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  header h1 { font-size: 1.4rem; }
+  header p { font-size: .85rem; opacity: .85; margin-top: 4px; }
+
+  .card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  }
+  .card h2 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    color: #38bdf8;
+    border-left: 4px solid #38bdf8;
+    padding-left: 8px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .field { display: flex; flex-direction: column; }
+  .field label {
+    font-size: .75rem;
+    margin-bottom: 4px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  input, select, textarea {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border .2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #38bdf8; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .full { grid-column: 1 / -1; }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .1s, opacity .2s;
+  }
+  button:active { transform: scale(.97); }
+  .btn-primary { background: #0ea5e9; color: #fff; }
+  .btn-primary:hover { background: #0284c7; }
+  .btn-success { background: #22c55e; color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-warning { background: #f59e0b; color: #fff; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid #475569; color: #cbd5e1; }
+  .btn-sm { padding: 5px 10px; font-size: .75rem; }
+
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+    min-width: 900px;
+  }
+  th {
+    background: #0f172a;
+    color: #38bdf8;
+    padding: 10px 8px;
+    text-align: left;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    border-bottom: 2px solid #334155;
+    white-space: nowrap;
+  }
+  td {
+    padding: 8px;
+    border-bottom: 1px solid #334155;
+    vertical-align: top;
+  }
+  tr:hover td { background: #243447; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: .7rem;
+    font-weight: 700;
+  }
+  .badge-tka { background: #1e3a8a; color: #93c5fd; }
+  .badge-ba02 { background: #7c2d12; color: #fdba74; }
+  .status-open { background:#f59e0b; color:#000; }
+  .status-onprogress { background:#0ea5e9; color:#fff; }
+  .status-done { background:#22c55e; color:#fff; }
+  .status-pending { background:#ef4444; color:#fff; }
+
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+    font-style: italic;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat-box {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    border-left: 3px solid #38bdf8;
+  }
+  .stat-box .num { font-size: 1.3rem; font-weight: 700; color: #38bdf8; }
+  .stat-box .lbl { font-size: .7rem; color: #94a3b8; text-transform: uppercase; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #22c55e;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: .9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all .3s;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: #ef4444; }
+
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.1rem; }
+    .grid { grid-template-columns: 1fr 1fr; }
+    .full { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📋 Logbook Storing</h1>
+    <p>Catatan trouble, action & manpower unit TKA / BA 02</p>
+  </header>
+
+  <!-- FORM INPUT -->
+  <div class="card">
+    <h2>➕ Tambah Logbook</h2>
+    <form id="formLaporan">
+      <div class="grid">
+        <div class="field">
+          <label>Tanggal</label>
+          <input type="date" id="tanggal" required>
+        </div>
+        <div class="field">
+          <label>Kode Unit</label>
+          <input type="text" id="kodeUnit" placeholder="cth: DT-001" required>
+        </div>
+        <div class="field">
+          <label>Lokasi</label>
+          <input type="text" id="lokasi" placeholder="cth: Pit A / Workshop" required>
+        </div>
+        <div class="field">
+          <label>Jam</label>
+          <input type="time" id="jam" required>
+        </div>
+        <div class="field">
+          <label>Kategori</label>
+          <select id="kategori" required>
+            <option value="">-- Pilih --</option>
+            <option>Engine</option>
+            <option>Hydraulic</option>
+            <option>Electrical</option>
+            <option>Powertrain</option>
+            <option>Undercarriage</option>
+            <option>Brake System</option>
+            <option>Steering</option>
+            <option>Air System</option>
+            <option>Lainnya</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status Unit</label>
+          <select id="statusUnit" required>
+            <option value="">-- Pilih --</option>
+            <option value="TKA">TKA</option>
+            <option value="BA 02">BA 02</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Trouble / Masalah</label>
+          <textarea id="trouble" placeholder="Deskripsi kerusakan / masalah..." required></textarea>
+        </div>
+        <div class="field full">
+          <label>Action / Tindakan</label>
+          <textarea id="action" placeholder="Tindakan perbaikan yang dilakukan..." required></textarea>
+        </div>
+        <div class="field full">
+          <label>Man Power (pisahkan dengan koma)</label>
+          <input type="text" id="manPower" placeholder="cth: Andi, Budi, Citra" required>
+        </div>
+        <div class="field">
+          <label>Status Pekerjaan</label>
+          <select id="statusPekerjaan" required>
+            <option value="Open">Open</option>
+            <option value="On Progress">On Progress</option>
+            <option value="Done">Done</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn-primary" id="btnSubmit">💾 Simpan Logbook</button>
+        <button type="button" class="btn-outline" id="btnReset">🔄 Reset Form</button>
+        <input type="hidden" id="editId">
+      </div>
+    </form>
+  </div>
+
+  <!-- STATISTIK -->
+  <div class="stats" id="stats"></div>
+
+  <!-- TABEL DATA -->
+  <div class="card">
+    <h2>📊 Data Logbook</h2>
+    <div class="grid" style="margin-bottom:12px;">
+      <div class="field">
+        <label>Filter Tanggal</label>
+        <input type="date" id="filterTanggal">
+      </div>
+      <div class="field">
+        <label>Filter Status Unit</label>
+        <select id="filterStatus">
+          <option value="">Semua</option>
+          <option value="TKA">TKA</option>
+          <option value="BA 02">BA 02</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cari (kode/lokasi/trouble)</label>
+        <input type="text" id="filterCari" placeholder="Ketik untuk mencari...">
+      </div>
+      <div class="field" style="justify-content:flex-end;">
+        <button type="button" class="btn-outline" id="btnExport">📥 Export CSV</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Tanggal</th>
+            <th>Jam</th>
+            <th>Kode Unit</th>
+            <th>Lokasi</th>
+            <th>Kategori</th>
+            <th>Trouble</th>
+            <th>Action</th>
+            <th>Status Unit</th>
+            <th>Man Power</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyState">Belum ada data logbook. Tambahkan logbook pertama Anda.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STORAGE ============
+const STORAGE_KEY = 'logbook_storing_v1';
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+function simpan() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ============ TOAST ============
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ============ FORM SUBMIT ============
+document.getElementById('formLaporan').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const editId = document.getElementById('editId').value;
+
+  const item = {
+    id: editId ? Number(editId) : Date.now(),
+    tanggal: document.getElementById('tanggal').value,
+    kodeUnit: document.getElementById('kodeUnit').value.trim().toUpperCase(),
+    lokasi: document.getElementById('lokasi').value.trim(),
+    jam: document.getElementById('jam').value,
+    trouble: document.getElementById('trouble').value.trim(),
+    kategori: document.getElementById('kategori').value,
+    action: document.getElementById('action').value.trim(),
+    statusUnit: document.getElementById('statusUnit').value,
+    manPower: document.getElementById('manPower').value.trim(),
+    statusPekerjaan: document.getElementById('statusPekerjaan').value,
+    createdAt: editId ? data.find(d => d.id === Number(editId))?.createdAt : new Date().toISOString()
+  };
+
+  if (editId) {
+    const idx = data.findIndex(d => d.id === Number(editId));
+    data[idx] = item;
+    toast('Logbook berhasil diupdate ✅');
+  } else {
+    data.unshift(item);
+    toast('Logbook berhasil disimpan ✅');
+  }
+
+  simpan();
+  resetForm();
+  render();
+});
+
+// ============ RESET FORM ============
+function resetForm() {
+  document.getElementById('formLaporan').reset();
+  document.getElementById('editId').value = '';
+  document.getElementById('btnSubmit').textContent = '💾 Simpan Logbook';
+  const now = new Date();
+  document.getElementById('tanggal').value = now.toISOString().slice(0,10);
+  document.getElementById('jam').value = now.toTimeString().slice(0,5);
+}
+document.getElementById('btnReset').addEventListener('click', resetForm);
+
+// ============ EDIT ============
+function editItem(id) {
+  const d = data.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('tanggal').value = d.tanggal;
+  document.getElementById('kodeUnit').value = d.kodeUnit;
+  document.getElementById('lokasi').value = d.lokasi;
+  document.getElementById('jam').value = d.jam;
+  document.getElementById('trouble').value = d.trouble;
+  document.getElementById('kategori').value = d.kategori;
+  document.getElementById('action').value = d.action;
+  document.getElementById('statusUnit').value = d.statusUnit;
+  document.getElementById('manPower').value = d.manPower;
+  document.getElementById('statusPekerjaan').value = d.statusPekerjaan;
+  document.getElementById('editId').value = d.id;
+  document.getElementById('btnSubmit').textContent = '💾 Update Logbook';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============ HAPUS ============
+function hapusItem(id) {
+  if (!confirm('Yakin hapus logbook ini?')) return;
+  data = data.filter(d => d.id !== id);
+  simpan();
+  render();
+  toast('Logbook dihapus 🗑️');
+}
+
+// ============ RENDER ============
+function render() {
+  const filterTgl = document.getElementById('filterTanggal').value;
+  const filterStatus = document.getElementById('filterStatus').value;
+  const filterCari = document.getElementById('filterCari').value.toLowerCase();
+
+  let filtered = data.filter(d => {
+    if (filterTgl && d.tanggal !== filterTgl) return false;
+    if (filterStatus && d.statusUnit !== filterStatus) return false;
+    if (filterCari) {
+      const hay = (d.kodeUnit + ' ' + d.lokasi + ' ' + d.trouble + ' ' + d.action + ' ' + d.manPower).toLowerCase();
+      if (!hay.includes(filterCari)) return false;
+    }
+    return true;
+  });
+
+  // STATISTIK
+  const total = data.length;
+  const tka = data.filter(d => d.statusUnit === 'TKA').length;
+  const ba02 = data.filter(d => d.statusUnit === 'BA 02').length;
+  const done = data.filter(d => d.statusPekerjaan === 'Done').length;
+  const pending = data.filter(d => d.statusPekerjaan !== 'Done').length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-box"><div class="num">${total}</div><div class="lbl">Total Logbook</div></div>
+    <div class="stat-box"><div class="num">${tka}</div><div class="lbl">Unit TKA</div></div>
+    <div class="stat-box"><div class="num">${ba02}</div><div class="lbl">Unit BA 02</div></div>
+    <div class="stat-box"><div class="num">${done}</div><div class="lbl">Selesai</div></div>
+    <div class="stat-box"><div class="num">${pending}</div><div class="lbl">Belum Selesai</div></div>
+  `;
+
+  // TABEL
+  const tbody = document.getElementById('tbody');
+  const emptyState = document.getElementById('emptyState');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+    emptyState.textContent = data.length === 0
+      ? 'Belum ada data logbook. Tambahkan logbook pertama Anda.'
+      : 'Tidak ada data yang cocok dengan filter.';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  const statusClass = {
+    'Open': 'status-open',
+    'On Progress': 'status-onprogress',
+    'Done': 'status-done',
+    'Pending': 'status-pending'
+  };
+
+  tbody.innerHTML = filtered.map((d, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${formatTanggal(d.tanggal)}</td>
+      <td>${d.jam}</td>
+      <td><strong>${esc(d.kodeUnit)}</strong></td>
+      <td>${esc(d.lokasi)}</td>
+      <td>${esc(d.kategori)}</td>
+      <td>${esc(d.trouble)}</td>
+      <td>${esc(d.action)}</td>
+      <td><span class="badge ${d.statusUnit === 'TKA' ? 'badge-tka' : 'badge-ba02'}">${d.statusUnit}</span></td>
+      <td>${d.manPower.split(',').map(m => `<span class="badge" style="background:#334155;color:#cbd5e1;">${esc(m.trim())}</span>`).join(' ')}</td>
+      <td><span class="badge ${statusClass[d.statusPekerjaan]}">${d.statusPekerjaan}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="btn-warning btn-sm" onclick="editItem(${d.id})">✏️</button>
+        <button class="btn-danger btn-sm" onclick="hapusItem(${d.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ============ HELPERS ============
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+function formatTanggal(tgl) {
+  if (!tgl) return '-';
+  const [y, m, d] = tgl.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ============ FILTER EVENTS ============
+document.getElementById('filterTanggal').addEventListener('change', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('filterCari').addEventListener('input', render);
+
+// ============ EXPORT CSV ============
+document.getElementById('btnExport').addEventListener('click', function() {
+  if (data.length === 0) { toast('Tidak ada data untuk diexport', true); return; }
+  const headers = ['Tanggal','Jam','Kode Unit','Lokasi','Kategori','Trouble','Action','Status Unit','Man Power','Status Pekerjaan'];
+  const rows = data.map(d => [
+    d.tanggal, d.jam, d.kodeUnit, d.lokasi, d.kategori,
+    d.trouble, d.action, d.statusUnit, d.manPower, d.statusPekerjaan
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `logbook_storing_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export CSV berhasil 📥');
+});
+
+// ============ INIT ============
+resetForm();
+render();
+</script>
+</body>
+</html>
